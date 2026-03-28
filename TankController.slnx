@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/Solution Items/">
     <File Path="../LICENSE" />
+    <File Path=".github/workflows/build.yml" />
   </Folder>
+  <Project Path="../TankController.Tests/TankController.Tests.csproj" Id="8c8f5485-1286-4f83-b0ac-3acefddfe924" />
   <Project Path="TankController.csproj" />
 </Solution>
