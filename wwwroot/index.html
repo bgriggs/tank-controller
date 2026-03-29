@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tank Controller</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: .9rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header h1 { font-size: 1.15rem; font-weight: 600; color: #f0f6fc; }
+    .live-dot {
+      width: 8px; height: 8px;
+      background: #3fb950;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: .4rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .updated { font-size: .78rem; color: #8b949e; }
+
+    /* ── Layout ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1.5rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+    }
+    .card-label {
+      font-size: .72rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: .45rem;
+    }
+    .card-value { font-size: 2.1rem; font-weight: 700; color: #f0f6fc; line-height: 1; }
+    .card-sub   { font-size: .85rem; color: #8b949e; margin-top: .3rem; }
+
+    /* ── Status grid ── */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: .2em .7em;
+      border-radius: 20px;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+    .badge-on  { background: #1a4731; color: #3fb950; border: 1px solid #2ea043; }
+    .badge-off { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+
+    /* ── Monthly stats card ── */
+    .stats-row { display: flex; gap: 2.5rem; flex-wrap: wrap; margin-bottom: .85rem; }
+    .stat-item .label {
+      font-size: .72rem; color: #8b949e;
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .stat-item .value { font-size: 1.6rem; font-weight: 600; color: #f0f6fc; }
+
+    .progress-track {
+      height: 7px;
+      background: #21262d;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #3fb950;
+      border-radius: 4px;
+      transition: width .4s ease;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: .95rem;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin-bottom: .8rem;
+    }
+    .section-sub { color: #8b949e; font-size: .78rem; font-weight: 400; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    thead th {
+      text-align: left;
+      padding: .45rem .75rem;
+      font-size: .72rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      border-bottom: 1px solid #30363d;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #21262d; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #1c2128; }
+    tbody td { padding: .55rem .75rem; }
+    .empty-row td { color: #8b949e; text-align: center; padding: 2rem; }
+
+    /* ── Error banner ── */
+    .error-banner {
+      background: #2d1215;
+      border: 1px solid #6e2b2b;
+      color: #f85149;
+      border-radius: 6px;
+      padding: .65rem 1rem;
+      margin-bottom: 1rem;
+      font-size: .875rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌡️ Tank Controller</h1>
+  <span class="updated">
+    <span class="live-dot"></span>Updated <span id="last-update">—</span>
+  </span>
+</header>
+
+<main>
+  <div id="error-banner" class="error-banner" style="display:none"></div>
+
+  <!-- Current readings -->
+  <div class="status-grid">
+    <div class="card">
+      <div class="card-label">Temperature</div>
+      <div class="card-value" id="temp-f">—</div>
+      <div class="card-sub"  id="temp-c"></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Relay</div>
+      <div class="card-value" id="relay-badge">—</div>
+    </div>
+  </div>
+
+  <!-- Monthly summary -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="section-title">Past 30 Days</div>
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="label">Hours On</div>
+        <div class="value" id="month-hours">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="label">Runtime %</div>
+        <div class="value" id="month-pct">—</div>
+      </div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="month-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Event log -->
+  <div class="card">
+    <div class="section-title">
+      Relay Event Log
+      <span class="section-sub">(last 100, newest first)</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>State</th>
+            <th>Temperature</th>
+          </tr>
+        </thead>
+        <tbody id="events-body">
+          <tr class="empty-row"><td colspan="3">No events recorded yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  const POLL_MS = 1_000;
+
+  const fToC = f => ((f - 32) * 5 / 9).toFixed(1);
+
+  function fmt(iso) {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+
+  async function refresh() {
+    try {
+      const res = await fetch('/api/status');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const d = await res.json();
+
+      document.getElementById('error-banner').style.display = 'none';
+
+      // Temperature
+      if (d.currentTemperatureF != null) {
+        document.getElementById('temp-f').textContent = d.currentTemperatureF.toFixed(1) + '°F';
+        document.getElementById('temp-c').textContent = fToC(d.currentTemperatureF) + '°C';
+      } else {
+        document.getElementById('temp-f').textContent = 'N/A';
+        document.getElementById('temp-c').textContent = 'Sensor unavailable';
+      }
+
+      // Relay badge
+      document.getElementById('relay-badge').innerHTML = d.relayIsOn
+        ? '<span class="badge badge-on">● ON</span>'
+        : '<span class="badge badge-off">○ OFF</span>';
+
+      // Monthly stats
+      document.getElementById('month-hours').textContent = d.monthlyOnHours.toFixed(1) + ' h';
+      document.getElementById('month-pct').textContent   = d.monthlyOnPercent.toFixed(1) + '%';
+      document.getElementById('month-bar').style.width   = Math.min(d.monthlyOnPercent, 100) + '%';
+
+      // Event log
+      const tbody = document.getElementById('events-body');
+      if (d.recentEvents && d.recentEvents.length > 0) {
+        tbody.innerHTML = d.recentEvents.map(e => {
+          const badge = e.isOn
+            ? '<span class="badge badge-on">ON</span>'
+            : '<span class="badge badge-off">OFF</span>';
+          return `<tr>
+            <td>${fmt(e.timestamp)}</td>
+            <td>${badge}</td>
+            <td>${e.temperatureF.toFixed(1)}&thinsp;°F &nbsp;/&nbsp; ${fToC(e.temperatureF)}&thinsp;°C</td>
+          </tr>`;
+        }).join('');
+      } else {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No events recorded yet</td></tr>';
+      }
+
+      // Last-updated timestamp
+      document.getElementById('last-update').textContent = fmt(d.asOf);
+
+    } catch (err) {
+      const el = document.getElementById('error-banner');
+      el.textContent = 'Could not load status: ' + err.message;
+      el.style.display = 'block';
+    }
+  }
+
+  refresh();
+  setInterval(refresh, POLL_MS);
+</script>
+</body>
+</html>

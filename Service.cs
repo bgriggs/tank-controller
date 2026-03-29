@@ -12,16 +12,19 @@ internal class Service : BackgroundService
     private readonly ITemperature temperatureSource;
     private readonly ILedControl systemLed;
     private readonly ILedControl heatLed;
+    private readonly StatusTracker statusTracker;
 
     private ILogger Logger { get; }
 
     public Service(IConfiguration configuration, ILoggerFactory loggerFactory, IRelayControl relayControl, ITemperature temperatureSource,
+        StatusTracker statusTracker,
         [FromKeyedServices("SystemLed")] ILedControl systemLed,
         [FromKeyedServices("HeatLed")] ILedControl heatLed)
     {
         this.configuration = configuration;
         this.relayControl = relayControl;
         this.temperatureSource = temperatureSource;
+        this.statusTracker = statusTracker;
         this.systemLed = systemLed;
         this.heatLed = heatLed;
         Logger = loggerFactory.CreateLogger(GetType().Name);
@@ -90,11 +93,15 @@ internal class Service : BackgroundService
             {
                 var temperature = await temperatureSource.GetTemperatureF(ip, 502, sensorId, Logger);
 
+                if (temperature.HasValue)
+                    statusTracker.UpdateTemperature(temperature.Value);
+
                 // Turn on relay if temperature is below threshold
                 if (temperature <= tempThresholdF)
                 {
                     relayControl.TurnOn();
                     heatLed.TurnOn();
+                    statusTracker.RecordRelayOn(temperature!.Value);
                     Logger.LogInformation($"Relay turned on: {temperature} < {tempThresholdF}");
                 }
 
@@ -103,6 +110,7 @@ internal class Service : BackgroundService
                 {
                     relayControl.TurnOff();
                     heatLed.TurnOff();
+                    statusTracker.RecordRelayOff(temperature!.Value);
                     Logger.LogInformation($"Relay turned off: {temperature} <= {tempThresholdOffDefF}");
                 }
 

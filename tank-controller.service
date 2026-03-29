@@ -17,8 +17,13 @@ KillSignal=SIGTERM
 TimeoutStopSec=30
 SyslogIdentifier=tank-controller
 Environment=DOTNET_ENVIRONMENT=Production
+# Allow binding to port 80 without running as root
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 StandardOutput=journal
 StandardError=journal
+
+[Install]
+WantedBy=multi-user.targetStandardError=journal
 
 [Install]
 WantedBy=multi-user.target
