@@ -1,0 +1,24 @@
+[Unit]
+Description=Tank Temperature Controller
+Documentation=https://github.com/bgriggs/tank-controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bgriggs
+# gpio group gives access to /dev/gpiomem without requiring root
+SupplementaryGroups=gpio
+WorkingDirectory=/home/bgriggs/tank-controller
+ExecStart=/home/bgriggs/tank-controller/TankController
+Restart=on-failure
+RestartSec=10
+KillSignal=SIGTERM
+TimeoutStopSec=30
+SyslogIdentifier=tank-controller
+Environment=DOTNET_ENVIRONMENT=Production
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
